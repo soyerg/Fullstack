@@ -1,7 +1,8 @@
 name: ips_dashboard
 services:
   api:
-    build: .
+    build:
+      context: .
     container_name: fastapi_app
     ports:
       - "8000:8000"
@@ -9,10 +10,14 @@ services:
       - db
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app              # ✅ Ajout clé
     volumes:
-      - .:/app
+      - ./app:/app
+    working_dir: /app
     command: >
-      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
 
   db:
     image: postgres:15
