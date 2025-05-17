@@ -1,0 +1,107 @@
+# 📊 Projet IPS Dashboard (FastAPI + PostgreSQL + Dash)
+
+Ce projet permet de :
+- Stocker des données d’écoles avec leur **Indice de Position Sociale (IPS)** dans une base PostgreSQL.
+- Fournir une API REST sécurisée via **FastAPI**.
+- Visualiser  les données dans un **Dashboard Dash**.
+
+---
+
+## 🚀 Fonctionnalités
+
+### 🔐 API FastAPI
+- Authentification par **JWT** (compte admin: `admin` / `1234`).
+- Endpoints :
+  - `POST /login` – Récupération du token JWT.
+  - `GET /schools` – Liste des écoles (avec filtres académie, commune, etc.).
+  - `GET /schools/{uai}` – Détails d'une école.
+  - `GET /schools/ips?min_ips=&max_ips=` – Écoles filtrées par plage IPS.
+  - `DELETE /schools/{uai}` – Supprime une école (authentifié uniquement).
+
+### 📈 Dashboard Dash
+- Graphique dynamique de l’**IPS moyen par département**.
+- Graphique des **écoles par tranche d’IPS (5 en 5 entre 80 et 115)**.
+- Données chargées dynamiquement depuis l’API (aucune connexion directe à la base).
+
+---
+
+## 🛠️ Structure
+
+\`\`\`
+project-root/
+│
+├── app/                            # Code de l’API FastAPI
+│   ├── main.py                     # Point d'entrée de l'application FastAPI
+│   ├── requirements.txt            # Dépendances Python backend
+│   ├── entrypoint.sh               # Script shell : init DB + lancement API
+│   │── dependencies.py 
+│   │── auth.py   
+│   │
+│   ├── bdd/                        # Gestion de la base de données
+│   │   ├── database.py             # Configuration SQLAlchemy (engine, session, Base)
+│   │   ├── models.py               # Modèles SQLAlchemy (School, User)
+│   │   ├── init_db.py              # Création des tables
+│   │   ├── load_ips.py             # Chargement des données + création admin
+│   │   └── ips.csv                 # Données IPS des écoles (source CSV)
+│   │
+│   └── routers/                    # Routes de l’API
+│       ├── schools.py              # Routes GET sur les écoles et l’IPS
+│       ├── auth.py                 # Route POST /login (authentification JWT)
+│            # Vérification du token JWT
+│
+├── dashboard/                      # Code du dashboard Dash
+│   ├── app.py                      # Interface graphique : graphiques IPS
+│   ├── requirements.txt            # Dépendances Python pour Dash
+│   └── Dockerfile                  # Image Docker du dashboard
+│
+├── .env                            # Variables d’environnement (.env)
+├── docker-compose.yml              # Configuration des services (FastAPI + PostgreSQL + Dash)
+└── Dockerfile                      # Image Docker du backend (FastAPI)
+
+\`\`\`
+
+---
+
+## 🐳 Lancer le projet avec Docker
+
+\`\`\`bash
+# 1. Construire et lancer tous les services (FastAPI, PostgreSQL, Dashboard)
+docker-compose up --build
+\`\`\`
+
+Ensuite :
+
+- Accès API : http://localhost:8000/docs
+- Accès Dashboard : http://localhost:8050
+
+---
+
+## 📦 Variables `.env`
+
+\`\`\`env
+DATABASE_URL=postgresql://user:password@db:5432/ipsdb
+SECRET_KEY=devsecretkey
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+IPS_FILE=bdd/ips.csv
+\`\`\`
+
+---
+
+## 🔐 Authentification
+
+\`\`\`bash
+POST /login
+{
+  "username": "admin",
+  "password": "1234"
+}
+\`\`\`
+
+Utilise ensuite le `access_token` dans Swagger via le bouton **Authorize** en haut à droite :  
+\`\`\`
+<votre_token>
+\`\`\`
+
+---
+
