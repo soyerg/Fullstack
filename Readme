@@ -1,107 +1,129 @@
+
 # 📊 Projet IPS Dashboard (FastAPI + PostgreSQL + Dash)
 
 Ce projet permet de :
-- Stocker des données d’écoles avec leur **Indice de Position Sociale (IPS)** dans une base PostgreSQL.
-- Fournir une API REST sécurisée via **FastAPI**.
-- Visualiser  les données dans un **Dashboard Dash**.
+
+- Stocker des données d’écoles avec leur **Indice de Position Sociale (IPS)** dans une base **PostgreSQL**.
+- Fournir une API REST sécurisée via **FastAPI** (authentification JWT).
+- Visualiser les données dans un **Dashboard  Dash**.
 
 ---
 
 ## 🚀 Fonctionnalités
 
 ### 🔐 API FastAPI
-- Authentification par **JWT** (compte admin: `admin` / `1234`).
+
+- Authentification par **JWT** (`admin` / `1234`).
 - Endpoints :
-  - `POST /login` – Récupération du token JWT.
-  - `GET /schools` – Liste des écoles (avec filtres académie, commune, etc.).
-  - `GET /schools/{uai}` – Détails d'une école.
-  - `GET /schools/ips?min_ips=&max_ips=` – Écoles filtrées par plage IPS.
-  - `DELETE /schools/{uai}` – Supprime une école (authentifié uniquement).
+  - `POST /login` → Récupération du token JWT.
+  - `GET /schools` → Liste complète des écoles.
+  - `GET /schools/{uai}` → Détails d’une école par UAI.
+  - `GET /schools/ips?min_ips=&max_ips=` → Filtrage des écoles selon l’IPS.
+  - `DELETE /schools/{uai}` → Supprimer une école (JWT requis).
 
 ### 📈 Dashboard Dash
+
 - Graphique dynamique de l’**IPS moyen par département**.
-- Graphique des **écoles par tranche d’IPS (5 en 5 entre 80 et 115)**.
-- Données chargées dynamiquement depuis l’API (aucune connexion directe à la base).
+- Graphique des **écoles par tranche d’IPS (par pas de 5 entre 80 et 115)**.
+- Données chargées via l’API (pas d'accès direct à la base).
 
 ---
 
-## 🛠️ Structure
+## 🗂️ Architecture du projet
 
-\`\`\`
+```
 project-root/
 │
-├── app/                            # Code de l’API FastAPI
-│   ├── main.py                     # Point d'entrée de l'application FastAPI
-│   ├── requirements.txt            # Dépendances Python backend
-│   ├── entrypoint.sh               # Script shell : init DB + lancement API
-│   │── dependencies.py 
-│   │── auth.py   
-│   │
-│   ├── bdd/                        # Gestion de la base de données
-│   │   ├── database.py             # Configuration SQLAlchemy (engine, session, Base)
-│   │   ├── models.py               # Modèles SQLAlchemy (School, User)
+├── app/                            # Code backend FastAPI
+│   ├── main.py                     # Entrée principale de l’API
+│   ├── entrypoint.sh               # Script Docker : init DB + lancement FastAPI
+│   ├── requirements.txt            # Dépendances Python (API)
+│   ├── auth.py                     # Fonctions de hash / JWT
+│   ├── dependencies.py             # Vérification JWT
+│   ├── schemas.py                  # Schémas Pydantic de réponse
+│   ├── tests/                      # Tests unitaires de l’API
+│   │   └── test_main.py
+│   ├── bdd/
+│   │   ├── database.py             # SQLAlchemy Base + Session
+│   │   ├── models.py               # Tables User et School
 │   │   ├── init_db.py              # Création des tables
-│   │   ├── load_ips.py             # Chargement des données + création admin
-│   │   └── ips.csv                 # Données IPS des écoles (source CSV)
-│   │
-│   └── routers/                    # Routes de l’API
-│       ├── schools.py              # Routes GET sur les écoles et l’IPS
-│       ├── auth.py                 # Route POST /login (authentification JWT)
-│            # Vérification du token JWT
+│   │   ├── load_ips.py             # Import CSV + création admin
+│   │   └── ips.csv                 # Données d’écoles
+│   └── routers/
+│       ├── schools.py              # Routes /schools
+│       └── auth.py                 # Route /login
 │
 ├── dashboard/                      # Code du dashboard Dash
-│   ├── app.py                      # Interface graphique : graphiques IPS
-│   ├── requirements.txt            # Dépendances Python pour Dash
-│   └── Dockerfile                  # Image Docker du dashboard
+│   ├── app.py                      # App Dash (visualisation)
+│   ├── requirements.txt            # Dépendances Dash
+│   └── Dockerfile                  # Image du dashboard
 │
-├── .env                            # Variables d’environnement (.env)
-├── docker-compose.yml              # Configuration des services (FastAPI + PostgreSQL + Dash)
-└── Dockerfile                      # Image Docker du backend (FastAPI)
-
-\`\`\`
+├── .env                            # Configuration d’environnement
+├── Dockerfile                      # Dockerfile backend
+├── docker-compose.yml              # Déploiement multi-services
+```
 
 ---
 
-## 🐳 Lancer le projet avec Docker
+## 🐳 Lancement du projet
 
-\`\`\`bash
-# 1. Construire et lancer tous les services (FastAPI, PostgreSQL, Dashboard)
+```bash
 docker-compose up --build
-\`\`\`
+```
 
-Ensuite :
+Accès aux services :
 
-- Accès API : http://localhost:8000/docs
-- Accès Dashboard : http://localhost:8050
-
----
-
-## 📦 Variables `.env`
-
-\`\`\`env
-DATABASE_URL=postgresql://user:password@db:5432/ipsdb
-SECRET_KEY=devsecretkey
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-IPS_FILE=bdd/ips.csv
-\`\`\`
+- 🔗 API : http://localhost:8000/docs
+- 📊 Dashboard : http://localhost:8050
 
 ---
 
 ## 🔐 Authentification
 
-\`\`\`bash
+```http
 POST /login
 {
   "username": "admin",
   "password": "1234"
 }
-\`\`\`
+```
 
-Utilise ensuite le `access_token` dans Swagger via le bouton **Authorize** en haut à droite :  
-\`\`\`
-<votre_token>
-\`\`\`
+Dans Swagger (`/docs`), cliquez sur **Authorize**, puis collez le token JWT dans ce format :
+
+```
+Bearer <votre_token>
+```
+
+---
+
+## ✅ Tests unitaires
+
+Les tests de l’API sont définis dans `app/tests/test_main.py` et sont lancés automatiquement au démarrage.
+
+```bash
+# Pour relancer manuellement :
+docker exec -it fastapi_app pytest
+```
+
+Les tests vérifient :
+
+- Accès aux écoles (`/schools`)
+- Filtrage IPS
+- Authentification JWT (valide et invalide)
+
+---
+
+## 📝 Exemple d’utilisation
+
+- Affichez les écoles dont l’IPS est compris entre 90 et 100 :
+  ```
+  GET /schools/ips?min_ips=90&max_ips=100
+  ```
+
+- Supprimez une école :
+  ```
+  DELETE /schools/0931234A (avec token JWT)
+  ```
 
 ---
 
