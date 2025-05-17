@@ -19,6 +19,17 @@ def get_schools():
         print("Erreur API:", e)
         return []
 
+def get_school_count_by_ips_range(min_ips, max_ips):
+    try:
+        params = {"min_ips": min_ips, "max_ips": max_ips}
+        response = requests.get(f"{API_URL}/schools/ips", params=params)
+        if response.status_code == 200:
+            return len(response.json())
+        return 0
+    except Exception as e:
+        print("Erreur API tranche IPS:", e)
+        return 0
+
 def compute_avg_ips_by_departement(data):
     df = pd.DataFrame(data)
     df = df[df["ips"].notna()]
@@ -26,26 +37,32 @@ def compute_avg_ips_by_departement(data):
     return df_grouped.sort_values("ips", ascending=False)
 
 app.layout = html.Div([
-    html.H1("📊 IPS moyen par département"),
+    html.H1("📊 Analyse des écoles par IPS"),
     html.Button("📥 Charger les données", id="load-btn", n_clicks=0),
-    dcc.Graph(id="ips-graph")
+    html.H2("📌 IPS moyen par région"),
+    dcc.Graph(id="ips-graph"),
+    html.H2("📈 Répartition des écoles par tranche d’IPS"),
+    dcc.Graph(id="ips-range-graph")
 ])
 
 @app.callback(
     Output("ips-graph", "figure"),
+    Output("ips-range-graph", "figure"),
     Input("load-btn", "n_clicks")
 )
-def update_graph(n_clicks):
+def update_graphs(n_clicks):
     if n_clicks == 0:
-        return {"layout": {"title": "Cliquez sur le bouton pour charger les données."}}
+        msg = {"layout": {"title": "Cliquez sur le bouton pour charger les données."}}
+        return msg, msg
 
-    data = get_schools()
-    if not data:
-        return {"layout": {"title": "❌ Données non disponibles"}}
+    schools = get_schools()
+    if not schools:
+        msg = {"layout": {"title": "❌ Données non disponibles"}}
+        return msg, msg
 
-    df = compute_avg_ips_by_departement(data)
+    df = compute_avg_ips_by_departement(schools)
 
-    return {
+    fig1 = {
         "data": [{
             "x": df["departement"],
             "y": df["ips"],
@@ -53,11 +70,31 @@ def update_graph(n_clicks):
             "name": "IPS moyen"
         }],
         "layout": {
-            "title": "Indice de Position Sociale (IPS) moyen par département",
+            "title": "📌 IPS moyen par région",
             "xaxis": {"title": "Département", "tickangle": -45},
             "yaxis": {"title": "IPS moyen"},
         }
     }
+
+    ranges = list(range(80, 115, 5))
+    x = [f"{r}–{r+5}" for r in ranges]
+    y = [get_school_count_by_ips_range(r, r+5) for r in ranges]
+
+    fig2 = {
+        "data": [{
+            "x": x,
+            "y": y,
+            "type": "bar",
+            "name": "Nombre d'écoles"
+        }],
+        "layout": {
+            "title": "Répartition des écoles par tranche d’IPS",
+            "xaxis": {"title": "Tranches d’IPS"},
+            "yaxis": {"title": "Nombre d’écoles"},
+        }
+    }
+
+    return fig1, fig2
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8050, debug=True)
