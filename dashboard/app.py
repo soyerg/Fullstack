@@ -27,18 +27,17 @@ def compute_avg_ips_by_departement(data):
 
 app.layout = html.Div([
     html.H1("📊 IPS moyen par département"),
-    dcc.Interval(id="init-delay", interval=25 * 1000, n_intervals=0, max_intervals=1),
+    html.Button("📥 Charger les données", id="load-btn", n_clicks=0),
     dcc.Graph(id="ips-graph")
 ])
 
 @app.callback(
     Output("ips-graph", "figure"),
-    Input("init-delay", "n_intervals")
+    Input("load-btn", "n_clicks")
 )
-def update_graph(n):
-    if n == 0:
-        # Ne rien faire tant que le timer n'est pas écoulé
-        return dash.no_update
+def update_graph(n_clicks):
+    if n_clicks == 0:
+        return {"layout": {"title": "Cliquez sur le bouton pour charger les données."}}
 
     data = get_schools()
     if not data:
