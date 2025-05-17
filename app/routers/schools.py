@@ -3,30 +3,23 @@ from sqlalchemy.orm import Session
 from bdd.database import SessionLocal
 from bdd.models import School
 from dependencies import get_current_user
-from typing import Optional
+from typing import Optional, Generator, List, Dict
+from schemas import SchoolOut  # ✅ Import du schéma
 
 router = APIRouter()
 
-# Dépendance : session DB
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-# 🔹 1. Toutes les écoles (avec filtres facultatifs)
-@router.get("/schools", tags=["schools"])
-def get_all_schools(
-    db: Session = Depends(get_db),
+@router.get("/schools", tags=["schools"], response_model=List[SchoolOut])
+def get_all_schools(db: Session = Depends(get_db)):
+    return db.query(School).all()
 
-):
-    query = db.query(School)
-
-    return query.all()
-
-# 🔹 2. Écoles par plage d’IPS
-@router.get("/schools/ips", tags=["schools"])
+@router.get("/schools/ips", tags=["schools"], response_model=List[SchoolOut])
 def get_schools_by_ips(
     min_ips: Optional[float] = Query(None),
     max_ips: Optional[float] = Query(None),
@@ -39,8 +32,7 @@ def get_schools_by_ips(
         query = query.filter(School.ips <= max_ips)
     return query.all()
 
-# 🔹 3. Une école par UAI
-@router.get("/schools/{uai}", tags=["schools"])
+@router.get("/schools/{uai}", tags=["schools"], response_model=SchoolOut)
 def get_school_by_uai(
     uai: str,
     db: Session = Depends(get_db)
@@ -50,13 +42,12 @@ def get_school_by_uai(
         raise HTTPException(status_code=404, detail="École non trouvée")
     return school
 
-# 🔐 4. Supprimer une école par UAI (protégé par JWT)
 @router.delete("/schools/{uai}", tags=["schools"])
 def delete_school_by_uai(
     uai: str,
     db: Session = Depends(get_db),
     user: str = Depends(get_current_user)
-):
+) -> Dict[str, str]:
     school = db.query(School).filter(School.uai == uai).first()
     if not school:
         raise HTTPException(status_code=404, detail="École non trouvée")
