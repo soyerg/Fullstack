@@ -1,12 +1,8 @@
-# app/models.py
 from sqlalchemy import Column, Integer, String, Float
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from .database import Base
 
 class School(Base):
     __tablename__ = "schools"
-
     id = Column(Integer, primary_key=True, index=True)
     rentree_scolaire = Column(String)
     academie = Column(String)
@@ -18,10 +14,9 @@ class School(Base):
     nom_de_la_commune = Column(String)
     secteur = Column(String)
     ips = Column(Float)
-    
+
 class User(Base):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)

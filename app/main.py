@@ -1,8 +1,7 @@
-# app/main.py
 from fastapi import FastAPI
+from routers import schools, auth
 
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"message": "API IPS en ligne 🚀"}
+app.include_router(auth.router)
+app.include_router(schools.router)
